@@ -1,6 +1,6 @@
 #!/usr/bin/env python3.6
 import argparse
-import datetime
+from datetime import datetime, timedelta
 import re
 from os.path import expanduser, join, exists
 pomo_dir = join(expanduser("~"), ".pomodoro")
@@ -17,17 +17,38 @@ class Pomodoro:
         if line == "":
             return None
         m = re.match("""([\\d\\.]*) dur=([\\d]*)m""", line)
-        if len(m.groups()) < 2:
+        if not hasattr(m, "groups") or len(m.groups()) < 2:
             print("badline")
-        start_time = datetime.datetime.fromtimestamp(float(m.group(1)))
-        return Pomodoro(start_time, m.group(2))
+            return None
+
+        start_time = datetime.fromtimestamp(float(m.group(1)))
+        return Pomodoro(start_time, int(m.group(2)))
+
+    def to_file(self):
+        t = datetime.timestamp(datetime.now())
+        current_file = join(pomo_dir, "current")
+        with open(current_file, "w") as f:
+            f.write(f"{t} dur={self.duration}m")
 
     def __init__(self, start_time, duration):
         self.start_time = start_time
         self.duration = duration
+        self.validate()
+
+    def validate(self):
+        pass
+
+    @property
+    def elapsed(self):
+        delta = datetime.now() - self.start_time
+        return delta
+
+    @property
+    def finished(self):
+        return self.elapsed > timedelta(minutes=self.duration)
 
     def __repr__(self):
-        return f"Pomodoro started {self.start_time} with length {self.duration}m"
+        return f"Pomodoro started {self.start_time} with length {self.duration}m - Finished: {self.finished} ({self.elapsed})"
 
 
 def get_current_pomodoro():
@@ -37,6 +58,7 @@ def get_current_pomodoro():
 def parse_args():
     parser = argparse.ArgumentParser(description='Options')
     parser.add_argument('action')
+    parser.add_argument('arg', nargs="?")
     return parser.parse_args()
 
 
@@ -49,7 +71,11 @@ def main():
         else:
             print(current)
     elif args.action == "start":
-        pass
+        if current is not None:
+            print("There's a pomodoro already in progress")
+        p = Pomodoro(datetime.now(), args.arg)
+        p.to_file()
+
     elif args.action == "stop":
         pass
     else:
