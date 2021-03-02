@@ -3,16 +3,22 @@ import argparse
 from datetime import datetime, timedelta
 import re
 from os.path import expanduser, join, exists
-pomo_dir = join(expanduser("~"), ".pomodoro")
+POMO_DIR = join(expanduser("~"), ".pomodoro")
+CURRENT_FILE = join(POMO_DIR, "current")
+HISTORY_FILE = join(POMO_DIR, "history")
 
 
 class Pomodoro:
+    def __init__(self, start_time, duration):
+        self.start_time = start_time
+        self.duration = duration
+        self.validate()
+
     @classmethod
     def from_file(cls):
-        current_file = join(pomo_dir, "current")
-        if not exists(current_file):
+        if not exists(CURRENT_FILE):
             return None
-        with open(current_file) as f:
+        with open(CURRENT_FILE) as f:
             line = f.readline()
         if line == "":
             return None
@@ -24,16 +30,17 @@ class Pomodoro:
         start_time = datetime.fromtimestamp(float(m.group(1)))
         return Pomodoro(start_time, int(m.group(2)))
 
+    def wipe(self):
+        # os.remo(_)
+        pass
+
     def to_file(self):
         t = datetime.timestamp(datetime.now())
-        current_file = join(pomo_dir, "current")
-        with open(current_file, "w") as f:
+        with open(CURRENT_FILE, "w") as f:
             f.write(f"{t} dur={self.duration}m")
 
-    def __init__(self, start_time, duration):
-        self.start_time = start_time
-        self.duration = duration
-        self.validate()
+    def to_history(self):
+        pass
 
     def validate(self):
         pass
@@ -65,19 +72,33 @@ def parse_args():
 def main():
     args = parse_args()
     current = get_current_pomodoro()
+
     if args.action == "status":
         if current is None:
             print("No current Pomodoro")
         else:
             print(current)
+
     elif args.action == "start":
         if current is not None:
-            print("There's a pomodoro already in progress")
+            if current.finished:
+                current.to_history()
+            else:
+                print("There's a pomodoro already in progress")
+                return
         p = Pomodoro(datetime.now(), args.arg)
         p.to_file()
 
     elif args.action == "stop":
-        pass
+        if current is not None:
+            if current.finished:
+                current.to_history()
+            else:
+                # Pomodoro.wipe()
+                print("Ended the Pomodoro")
+                return
+        print("There's no pomodoro in progress")
+        return
     else:
         print("I ain't heard of this action")
 
