@@ -57,6 +57,25 @@ class Pomodoro:
     def __repr__(self):
         return f"Pomodoro started {self.start_time} with length {self.duration}m - Finished: {self.finished} ({self.elapsed})"
 
+    def tmux_repr(self):
+        elapsed = round(self.elapsed.total_seconds())
+        m = elapsed // 60
+        s = elapsed % 60
+        tot = self.duration * 60
+        percent_done = elapsed / tot
+        number_of_ticks = 60
+        done_ticks = round(percent_done * number_of_ticks)
+        undone_ticks = number_of_ticks - done_ticks
+        done_bar = '##' * done_ticks  # double # because tmux swallows one every time
+        undone_bar = '-' * undone_ticks
+        progress_bar = f"<{done_bar}{undone_bar}>"
+        message = f"{progress_bar} {m}:{s:02d} / {tot}:00"
+        if percent_done < 0.75:
+            colour = 13  # pale red
+        else:
+            colour = 11  # pale yellow
+        return message, colour
+
 
 def get_current_pomodoro():
     return Pomodoro.from_file()
@@ -78,6 +97,14 @@ def main():
             print("No current Pomodoro")
         else:
             print(current)
+
+    elif args.action == "tmux":
+        if current is None or current.finished:
+            message = "No Pomodoro in progress"
+            colour = 2
+        else:
+            message, colour = current.tmux_repr()
+        print(f"#[fg=colour0,bg=colour{colour},bold] {message}")
 
     elif args.action == "start":
         if current is not None:
