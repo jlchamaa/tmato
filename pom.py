@@ -69,7 +69,7 @@ class Pomodoro:
         done_bar = '##' * done_ticks  # double # because tmux swallows one every time
         undone_bar = '-' * undone_ticks
         progress_bar = f"<{done_bar}{undone_bar}>"
-        message = f"{progress_bar} {m}:{s:02d} / {tot}:00"
+        message = f"{progress_bar} {m}:{s:02d} / {self.duration}:00"
         if percent_done < 0.75:
             colour = 13  # pale red
         else:
