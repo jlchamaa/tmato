@@ -2,6 +2,7 @@
 import argparse
 from datetime import datetime, timedelta
 import re
+import os
 from os.path import expanduser, join, exists
 POMO_DIR = join(expanduser("~"), ".pomodoro")
 CURRENT_FILE = join(POMO_DIR, "current")
@@ -15,11 +16,7 @@ class Pomodoro:
         self.validate()
 
     @classmethod
-    def from_file(cls):
-        if not exists(CURRENT_FILE):
-            return None
-        with open(CURRENT_FILE) as f:
-            line = f.readline()
+    def from_flat_format(cls, line):
         if line == "":
             return None
         m = re.match("""([\\d\\.]*) dur=([\\d]*)m""", line)
@@ -30,17 +27,29 @@ class Pomodoro:
         start_time = datetime.fromtimestamp(float(m.group(1)))
         return Pomodoro(start_time, int(m.group(2)))
 
-    def wipe(self):
-        # os.remo(_)
-        pass
+    @classmethod
+    def from_file(cls):
+        if not exists(CURRENT_FILE):
+            return None
+        with open(CURRENT_FILE) as f:
+            line = f.readline()
+            return cls.from_flat_format(line)
+
+    def to_flat_format(self):
+        t = datetime.timestamp(self.start_time)
+        return f"{t} dur={self.duration}m\n"
 
     def to_file(self):
-        t = datetime.timestamp(datetime.now())
         with open(CURRENT_FILE, "w") as f:
-            f.write(f"{t} dur={self.duration}m")
+            f.write(self.to_flat_format())
 
     def to_history(self):
-        pass
+        with open(HISTORY_FILE, "a") as f:
+            f.write(self.to_flat_format())
+
+    @classmethod
+    def wipe(cls):
+        os.remove(CURRENT_FILE)
 
     def validate(self):
         pass
@@ -121,7 +130,7 @@ def main():
             if current.finished:
                 current.to_history()
             else:
-                # Pomodoro.wipe()
+                Pomodoro.wipe()
                 print("Ended the Pomodoro")
                 return
         print("There's no pomodoro in progress")
